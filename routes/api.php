@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\ProductRatingController;
+use App\Http\Controllers\ProductSaleController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -17,3 +19,6 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+Route::get('/product/rating/{productId}', [ProductRatingController::class, 'averageProductRating']);
+Route::get('/product/sale/{productId}', [ProductSaleController::class, 'totalSalesInTheLastHour']);

@@ -78,6 +78,12 @@ return [
             'sslmode' => 'prefer',
         ],
 
+        'mongodb' => [
+            'driver' => 'mongodb',
+            'dsn' => env('DB_URI', 'mongodb+srv://username:password@<atlas-cluster-uri>/jetstream?retryWrites=true&w=majority'),
+            'database' => env('DB_DATABASE'),
+        ],
+
         'sqlsrv' => [
             'driver' => 'sqlsrv',
             'url' => env('DATABASE_URL'),

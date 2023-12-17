@@ -70,7 +70,7 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => env('APP_TIMEZONE', 'UTC'),
 
     /*
     |--------------------------------------------------------------------------
@@ -163,6 +163,8 @@ return [
         /*
          * Application Service Providers...
          */
+        Bugsnag\BugsnagLaravel\BugsnagServiceProvider::class,
+        MongoDB\Laravel\MongoDBServiceProvider::class,
         App\Providers\AppServiceProvider::class,
         App\Providers\AuthServiceProvider::class,
         // App\Providers\BroadcastServiceProvider::class,
