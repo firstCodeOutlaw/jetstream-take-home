@@ -6,7 +6,7 @@
 The goal of this technical design document is to design a backend system capable of powering a real-time analytics dashboard for a Saas platform for a logistics company. Much of the requirements is stated in the “Practical Assessment - Backend Engineering” document.
 
 ### System Architecture
-![Simple System architecture diagram](system-architecture.png)
+![Blank diagram](https://github.com/firstCodeOutlaw/jetstream-take-home/assets/28225474/e68cb7b5-2deb-45c6-bca5-28ffccf651e3)
 
 A message streaming platform such as Apache Kafka will sit at the heart of this system.
 Kafka will receive streams of events from an unspecified number of producers. We’re less worried about the estimated number of producers or messages per day because of Kafka’s ability to handle very large volumes of messages at scale.
