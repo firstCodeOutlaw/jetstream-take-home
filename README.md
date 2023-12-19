@@ -1,66 +1,85 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+## About Jetstream Take Home
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+### TECHNICAL DESIGN FOR A BACKEND SYSTEM CAPABLE OF POWERING A REAL-TIME ANALYTICS DASHBOARD FOR A SAAS PLATFORM
 
-## About Laravel
+### Objective
+The goal of this technical design document is to design a backend system capable of powering a real-time analytics dashboard for a Saas platform for a logistics company. Much of the requirements is stated in the “Practical Assessment - Backend Engineering” document.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+### System Architecture
+![Simple System architecture diagram](system-architecture.png)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+A message streaming platform such as Apache Kafka will sit at the heart of this system.
+Kafka will receive streams of events from an unspecified number of producers. We’re less worried about the estimated number of producers or messages per day because of Kafka’s ability to handle very large volumes of messages at scale.
+A consumer would consume messages from Kafka and create some database records in a NoSQL database such as MongoDB. An analytics REST API written in Laravel will feed from MongoDB to serve the analytics dashboard.
+The intention is to have multiple instances of the analytics REST API and consumer running respectively. That way, our system is optimized for availability. With multiple instances of the Analytics REST API running, we introduce a load balancer to ensure that requests are efficiently distributed between all instances of the analytics REST API. 
+MongoDB is chosen for a few reasons:
+- (a) we’re not sure how often the structure of data by producers could change. We don’t have a strict structure for the data sent to Kafka and we’re unsure of how often new parameters may be added
+- (b) we have all the data we need from the data consumed in Kafka. Thus, there’ll most likely be no need for joins to produce analytics data
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Data Ingestion and Processing
+Because much of the data for this tech design is simulated, below are a few event streams and the structure of data expected from producers:
 
-## Learning Laravel
+#### EVENT 1 (productSold)
+This powers analytics such as total sales in the last hour. The idea is that this event is fired by a producer whenever a product is sold. It is ingested by Kafka and processed by a consumer which treats the productSold event and inserts into our NoSQL database (MongoDB).
+Structure:
+```json
+{
+    "event_name": "productSold",
+    "name_of_product": "product A",
+    "product_id": 233,
+    "no_of_units": 10,
+    "amount":"2500"
+}
+```
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+#### EVENT 2 (productRated)
+This powers analytics such as average product rating.
+Structure:
+```json
+{
+    "event": "productRated",
+    "name_of_product": "product A",
+    "product_id": 12,
+    "rating": 4,
+    "category": "F"
+}
+```
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+### Security and Compliance
+For API authentication, Laravel Sanctum will be used.
+In a production grade implementation, we also want to use SSL/TLS to encrypt request/response traffic.
+Another consideration is the load balancer sitting in front of the Analytics REST API which serves as a mask for the IP of the REST API.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains over 2000 video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Technology Stack
+- **Message broker:** Apache Kafka
+- **Database:** a NoSQL database such as MongoDB
+- **Analytics REST API:** Laravel. This is chosen based on what the team is already familiar with. No learning curve involved.
+- **Consumer:** a console command running in the Analytics REST API app
 
-## Laravel Sponsors
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## Installation
+- Run `git clone https://github.com/firstCodeOutlaw/jetstream-take-home.git` to clone this repo
+- cd into jetstream-take-home directory
+- copy .env.example file into .env
+- Log on to https://bugsnag.com. Create a free account and get your API key. Use that as the value for the `BUGSNAG_API_KEY` env variable
+- Open a terminal and run `./vendor/bin/sail up` to start all Docker containers
+- Open another terminal and run `./vendor/bin/sail php artisan key:generate` to generate an app key for the Laravel application
+- To start the Kafka consumer, open another terminal and run `./vendor/bin/sail php artisan app:kafka-consume`. It should start listening for messages published to analytics topic in the Dockerized Kafka instance.
+- Start a tinker shell in another terminal using `./vendor/bin/sail php artisan tinker`, and run the four commands below to publish productRated and productSold messages to analytics topic:
+- ```
+  use Junges\Kafka\Facades\Kafka; use Junges\Kafka\Message\Message; $message = new Message(body: ['event_name' => 'productRated', 'name_of_product' => 'Product X', 'product_id' => 1, 'rating' => 4, 'category' => 'Software']); Kafka::publishOn('analytics')->withMessage($message)->send();
+  use Junges\Kafka\Facades\Kafka; use Junges\Kafka\Message\Message; $message = new Message(body: ['event_name' => 'productRated', 'name_of_product' => 'Product X', 'product_id' => 1, 'rating' => 5, 'category' => 'Software']); Kafka::publishOn('analytics')->withMessage($message)->send();
+  
+  use Junges\Kafka\Facades\Kafka; use Junges\Kafka\Message\Message; $message = new Message(body: ['event_name' => 'productSold', 'name_of_product' => 'Product A', 'product_id' => 3, 'no_of_units' => 20, 'amount' => 2000]); Kafka::publishOn('analytics')->withMessage($message)->send();
+  use Junges\Kafka\Facades\Kafka; use Junges\Kafka\Message\Message; $message = new Message(body: ['event_name' => 'productSold', 'name_of_product' => 'Product A', 'product_id' => 3, 'no_of_units' => 10, 'amount' => 1000]); Kafka::publishOn('analytics')->withMessage($message)->send();
+  ```
+- Open Postman or any REST API client of choice to check total products sold in the last hour and average product ratings.
+- | Endpoint Name                        | URL                          | HTTP Method | Sample Response         |
+  |--------------------------------------|--------------------------------------|-------------|-------------------------|
+  | Average Product Ratings              | http://localhost/api/product/rating/1 | GET         | `{ "total": 3000 }`       |
+  | Total Product Sales in the Last Hour | http://localhost/api/product/sale/3  | GET         | `{ "average_rating": 4 }` |
 
-### Premium Partners
-
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+The is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
