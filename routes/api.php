@@ -20,5 +20,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::get('/product/rating/{productId}', [ProductRatingController::class, 'averageProductRating']);
-Route::get('/product/sale/{productId}', [ProductSaleController::class, 'totalSalesInTheLastHour']);
+Route::get('/product/rating/{productId}', [ProductRatingController::class, 'averageProductRating'])
+    ->whereNumber('productId');
+Route::get('/product/sale/{productId?}', [ProductSaleController::class, 'totalSalesInTheLastHour'])
+    ->whereNumber('productId');
