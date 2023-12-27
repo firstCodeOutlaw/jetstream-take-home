@@ -78,7 +78,7 @@ Another consideration is the load balancer sitting in front of the Analytics RES
   |--------------------------------------|--------------------------------------|-------------|-------------------------|
   | Average Product Ratings              | http://localhost/api/product/rating/1 | GET         | `{ "total": 3000 }`       |
   | Total Product Sales in the Last Hour | http://localhost/api/product/sale/3  | GET         | `{ "average_rating": 4 }` |
-
+- There are a few feature tests in /tests/Feature/. You may open a terminal and run `./vendor/bin/sail php artisan test` to run the tests.
 
 ## License
 

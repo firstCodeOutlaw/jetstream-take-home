@@ -30,11 +30,12 @@ class ProductSaleEndpointTest extends TestCase
 
     public function test_that_status_is_200_if_product_exists()
     {
+        $productId = 1;
         // Populate test DB with data
         $now = Carbon::now()->toIso8601String();
         DB::table('product_sales')->insert([
             'product_name' => 'Sample product',
-            'product_id' => 1,
+            'product_id' => $productId,
             'number_of_units' => 2,
             'amount' => 2000,
             'created_at' => $now,
@@ -42,7 +43,6 @@ class ProductSaleEndpointTest extends TestCase
         ]);
 
         // Assert
-        $productId = 1;
         $response = $this->get("/api/product/sale/$productId");
 
         $response->assertOk();
